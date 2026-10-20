@@ -1,0 +1,17 @@
+#todo: does nothing if column exists, adds column otherwise
+
+def ensure_col(df: DataFrame, field: StructField) -> DataFrame:
+    return normalize_to_schema(df, StructType([f for f in df.schema.fields if f.name != field.name] + [field]))
+
+
+# todo: "a.b.c" => ["a", "b", "c"]
+# todo: if "a" in df.schema, return col("a"), if not create StructType with name "a" and
+def ensure_col2(df: DataFrame, col_name: str, data_type: DataType) -> DataFrame:
+    # convert col_name to nested column
+    #flatten df
+
+
+
+    cols = col_name.split(".")
+
+    return df.withColumn(col_name.name, normalize_to_schema(F.col(col_name.name), StructType([col_name])))

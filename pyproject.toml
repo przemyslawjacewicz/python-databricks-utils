@@ -1,0 +1,29 @@
+[project]
+name = "python-databricks-utils"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+
+# todo: when producing a distribution (either source or build) consider changing the dependencies as dev dependencies
+dependencies = [
+    "delta-spark==4.0.0",
+    "pyspark==4.0.3",
+    "python-dotenv>=1.2.2",
+    "python-databricks-env",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3"
+]
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.sources]
+python-databricks-env = { path = "../python-databricks-env", editable = true }

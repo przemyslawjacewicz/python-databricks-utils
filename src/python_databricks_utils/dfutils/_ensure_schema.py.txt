@@ -1,0 +1,7 @@
+#todo: does nothing if dataframe has given schema, normalizes to given schema otherwise
+# does not change existing columns
+def ensure_schema(df: DataFrame, schema: StructType) -> DataFrame:
+    return normalize_to_schema(
+        df,
+        StructType([f for f in df.schema.fields if f.name not in schema.fieldNames()] + schema.fields)
+    )

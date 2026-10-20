@@ -1,0 +1,411 @@
+import functools
+
+import pyspark.sql.functions as F
+from pyspark.sql import Column
+from pyspark.sql.types import StructType, StructField, LongType, ArrayType, MapType, StringType
+from pyspark.testing import assertDataFrameEqual
+
+from dfutils.col_exists import col_exists_in_dataframe
+from dfutils._collapse import collapse_dataframe
+from dfutils.fields import foreach_field
+from dfutils.utils import flatten_list
+from tests import get_or_create_spark
+
+spark = get_or_create_spark()
+
+
+# todo: example
+def test_structtype_structfield():
+    schema = StructType(
+        [
+            StructField("_1@_1", LongType()),
+            StructField("_1@_2", LongType())
+        ]
+    )
+    f = spark.createDataFrame([(1, 2)], schema)
+    f.printSchema()
+    f.show()
+
+    c = (
+        f.select(
+            F.struct(F.col("_1@_1").alias("_1"), F.col("_1@_2").alias("_2")).alias("_1")
+        )
+    )
+    c.printSchema()
+    c.show()
+
+
+def test_structtype_structtype_structfield():
+    schema = StructType(
+        [
+            StructField("_1@_2@_31", LongType()),
+            StructField("_1@_2@_32", LongType())
+        ]
+    )
+    f = spark.createDataFrame([(31, 32)], schema)
+    f.printSchema()
+    f.show()
+
+    c = (
+        f.select(
+            F.struct(F.struct(F.col("_1@_2@_31").alias("_31"), F.col("_1@_2@_32").alias("_32")).alias("_2")).alias("_1")
+        )
+    )
+    c.printSchema()
+    c.show()
+
+    c2 = (
+        c
+        .withColumn("_1", F.col("_1").withField("_2", F.col("_1._2").withField("_33", F.lit(33))))
+    )
+    c2.printSchema()
+    c2.show()
+
+    c21 = (
+        f.withColumn(
+            "_1",
+            F.struct(
+                F.struct(
+                    F.col("_1@_2@_31").alias("_31")
+                ).alias("_2")
+            )
+        )
+    )
+    c21.printSchema()
+    c21.show()
+    c22 = (
+        c21.withColumn(
+            "_1",
+            F.col("_1").withField(
+                "_2",
+                F.col("_1._2").withField(
+                    "_32",
+                    F.col("_1@_2@_32")
+                )
+            )
+        )
+    )
+    c22.printSchema()
+    c22.show()
+
+
+    df = f.withColumn("c", F.struct(F.lit("dummy").alias("dummy")))
+    "_1@_2@_31"
+    if col_exists_in_dataframe(df, ["_1"]):
+        print("Column exists")
+        # F.col("_1").withField
+    else:
+        print("Column does not exist")
+        # c -> F.struct(c)
+
+
+    # "_1@_2@_3@_41"
+    # c3 =
+
+
+def test_generic():
+    schema = StructType(
+        [
+            StructField("_1@_2@_31", LongType()),
+            StructField("_1@_2@_32", LongType())
+        ]
+    )
+    f = spark.createDataFrame([(31, 32)], schema)
+    f.printSchema()
+    f.show()
+
+    # constructing single column struct can be done easily
+    # "_1@_1" -> F.struct(F.col("_1@_1").alias("_1"))
+    # "_1@_2" -> F.struct(F.col("_1@_2").alias("_2"))
+    # the problem is hot to 'merge' such structs into one struct
+
+    # step 1: split by "@" and for each part apart from the last one create a struct
+    # "_1@_1"
+    s1 = F.struct().alias("_1")
+    s1.withField("_1", F.col("_1@_1"))
+
+    # "_1@_1@_1"
+    s1 = F.struct().alias("_1")
+    s1.withField("_1", F.struct())
+    s2 = s1.getField("_1").withField("_1", F.col("_1@_1@_1"))
+
+    # "_1@_1@_2"
+    s1 = F.struct().alias("_1")
+    s1.withField("_1", F.struct())
+    s2 = s1.getField("_1").withField("_1", F.col("_1@_1@_2"))
+
+    # todo: make it random
+    c = "c"
+
+    def with_column(df: DataFrame, refs: list[str]):
+        functools.reduce(lambda acc, ref: acc.withField(ref, ), refs, F.col(c))
+        f.withColumn(c, F.col(refs))
+
+    df = (
+        with_column(f, "_1@_2@_31")
+    )
+
+    def get_or_create(df: DataFrame, refs: list[str]):
+        def with_field():
+            print(f"{refs=}, {refs[:-1]=}, {refs[-1]=}")
+            df.printSchema()
+
+            (
+                # df.withColumn(c, F.col(c).with )
+            )
+
+            leaf = functools.reduce(lambda acc, ref: acc.getField(ref), refs[:-1], F.col(c))
+            print(f"{leaf=}")
+            df.select(leaf).printSchema()
+            df.select(
+                leaf.withField(refs[-1], F.struct(F.lit("dummy_with_field").alias("dummy_with_field")))).printSchema()
+            x = df.withColumn(c,
+                              leaf.withField(refs[-1], F.struct(F.lit("dummy_with_field").alias("dummy_with_field"))))
+            x.printSchema()
+            r = df.withColumn(c,
+                              leaf.withField(refs[-1], F.struct(F.lit("dummy_with_field").alias("dummy_with_field"))))
+
+            # todo: to do it properly each level need to be rebuild
+            F.col(".".join(refs[:-1])).withField(refs[-1], )
+
+            return
+
+        return with_field() if not col_exists_in_dataframe(df, refs) else df
+
+    def with_field(df: DataFrame, refs: list[str], value: Column):
+        leaf = functools.reduce(lambda acc, ref: acc.getField(ref), refs[:-1], F.col(c))
+        return df.withColumn(c, leaf.withField(refs[-1], value))
+
+    df = (
+        with_field(
+            get_or_create(
+                get_or_create(
+                    f.withColumn(c, F.struct(F.lit("dummy").alias("dummy"))),  # todo: check if dummy can be avoided
+                    ["_1"]
+                ),
+                ["_1", "_2"]
+            ),
+            ["_1", "_2", "_3"],
+            F.col("_1@_2@_3")
+        )
+    )
+    df.printSchema()
+    df.show()
+
+
+def test_generic2():
+    schema = StructType(
+        [
+            StructField("_1@_2@_31", LongType()),
+            StructField("_1@_2@_32", LongType())
+        ]
+    )
+    f = spark.createDataFrame([(31, 32)], schema)
+    f.printSchema()
+    f.show()
+
+    # def add_col(field, refs):
+    #     print(f"{field=}, {refs=}")
+    #
+    #     functools.reduce(   ,   )
+    #
+    #
+    #     col_exists = col_exists_in_dataframe(f, refs)
+    #
+    #     if
+    #
+    # cols = []
+    # foreach_field(f.schema, lambda field, refs:    )
+
+    field1 = StructField('_1@_2@_31', LongType() )
+    refs1=['_1@_2@_31']
+    field2 = StructField('_1@_2@_32', LongType() )
+    refs2=['_1@_2@_32']
+
+    refs1_split = flatten_list([ ref.split("@")  for ref in refs1 ])
+
+
+
+
+
+
+
+
+
+
+
+def test_collapse_dataframe__StructField():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [(1,)],
+                StructType([StructField("_1", LongType())])
+            ),
+            "@"
+        ),
+        spark.createDataFrame([(1,)])
+    )
+
+
+def test_collapse_dataframe__StructType_StructField():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [(1,)],
+                StructType([StructField("_1@_1", LongType())])
+            ),
+            "@"
+        ),
+        spark.createDataFrame([((1,),)])
+    )
+
+
+def test_collapse_dataframe__StructType_StructType_StructField():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [(1,)],
+                StructType([StructField("_1@_1@_1", LongType())])
+            ),
+            "@"
+        ),
+        spark.createDataFrame([(((1,),),)])
+    )
+
+
+# todo: is it needed ?
+def test_collapse_dataframe__StructType_StructType_StructField2():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [(1, 1,)],
+                StructType([StructField("_1@_1@_1", LongType()), StructField("_1@_1@_2", LongType())])
+            ),
+            "@"
+        ),
+        spark.createDataFrame([(((1, 1,),),)])
+    )
+
+
+def test_collapse_dataframe__ArrayType_with_DataType():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [([1],)],
+                StructType([StructField("_1", ArrayType(LongType()))])
+            ),
+            "@"
+        ),
+        spark.createDataFrame(
+            [([1],)],
+            StructType([StructField("_1", ArrayType(LongType()))])
+        )
+    )
+
+
+def test_collapse_dataframe__ArrayType_with_StructType_StructField():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [([(1,)],)],
+                StructType([StructField("_1", ArrayType(StructType([StructField("_1", LongType())])))])
+            ),
+            "@"
+        ),
+        spark.createDataFrame(
+            [([(1,)],)],
+            StructType([StructField("_1", ArrayType(StructType([StructField("_1", LongType())])))])
+        )
+    )
+
+
+def test_collapse_dataframe__ArrayType_with_StructType_StructType_StructField():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [([(1,)],)],
+                StructType([StructField("_1", ArrayType(StructType([StructField("_1@_1", LongType())])))])
+            ),
+            "@"
+        ),
+        spark.createDataFrame(
+            [([((1,),)],)],
+            StructType([StructField("_1", ArrayType(StructType([StructField("_1@_1", LongType())])))])
+        )
+    )
+
+
+def test_collapse_dataframe__MapType_with_DataType():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [({1: "a"},)],
+                StructType([StructField("_1", MapType(LongType(), StringType()))])
+            ),
+            "@"
+        ),
+        spark.createDataFrame(
+            [({1: "a"},)],
+            StructType([StructField("_1", MapType(LongType(), StringType()))])
+        )
+    )
+
+
+def test_collapse_dataframe__MapType_with_StructType_StructField():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [({(1,): ("a",)},)],
+                StructType(
+                    [
+                        StructField("_1", MapType(
+                            StructType([StructField("_1", LongType())]),
+                            StructType([StructField("_1", StringType())])
+                        ))
+                    ]
+                )
+            ),
+            "@"
+        ),
+        spark.createDataFrame(
+            [({(1,): ("a",)},)],
+            StructType(
+                [
+                    StructField("_1", MapType(
+                        StructType([StructField("_1", LongType())]),
+                        StructType([StructField("_1", StringType())])
+                    ))
+                ]
+            )
+        )
+    )
+
+
+def test_collapse_dataframe__MapType_with_StructType_StructType_StructField():
+    assertDataFrameEqual(
+        collapse_dataframe(
+            spark.createDataFrame(
+                [({(1,): ("a",)},)],
+                StructType(
+                    [
+                        StructField("_1", MapType(
+                            StructType([StructField("_1@_1", LongType())]),
+                            StructType([StructField("_1@_1", StringType())])
+                        ))
+                    ]
+                )
+            ),
+            "@"
+        ),
+        spark.createDataFrame(
+            [({((1,),): (("a",),)},)],
+            StructType(
+                [
+                    StructField("_1", MapType(
+                        StructType([StructField("_1", StructType([StructField("_1", LongType())]))]),
+                        StructType([StructField("_1", StructType([StructField("_1", StringType())]))])
+                    ))
+                ]
+            )
+        )
+    )

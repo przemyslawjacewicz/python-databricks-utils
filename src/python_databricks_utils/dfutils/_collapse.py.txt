@@ -1,0 +1,164 @@
+#todo: collapses given dataframe into a dataframe wit nested structs
+
+# todo: implement me
+# todo: add tests
+import functools
+
+from pyspark.sql import DataFrame, SparkSession, Column
+from pyspark.sql.types import StructType, StructField
+
+from dfutils.fields import foreach_field
+from dfutils.utils import flatten_list
+
+import pyspark.sql.functions as F
+
+
+def collapse_dataframe(df: DataFrame, sep: str) -> DataFrame:
+    # todo: consider a better name
+    class Cont:
+        pass
+
+    class StructFieldCont(Cont):
+        # def __init__(self):
+        # super().__init__(field)
+        # self.c = field
+        pass
+
+    class StructTypeCont(Cont):
+        pass
+
+    # we need to have an aggregated view of the dataframe schema
+
+    # data struct to collect all fields, should allow to create a new dataframe with the collapsed schema
+
+    # 1. dict ? leaf nodes are like this
+    # {_1: structfield} -> structfield
+    # {_2: {_1:structfield1, _2:structfield2}} -> structtype
+    # {_3: [DataType()]} -> arraytype with datatype
+    # {_4: [{_1:structfield1, _2:structfield2}]} -> arraytype with structtype
+    # {_5: {DataType():DataType()}    } -> maptype with datatype
+    # {_6: {{_1:structfield1, _2:structfield2}}:{_1:structfield1, _2:structfield2}}} -> maptype with structtype
+
+    # type of original field dictates the type of struct in dict
+
+    # examples
+    # schema = (_1@_1, _1@_2) -> {_1:field1, _2:field2}
+
+    # 2. create a specified data struct that would hold specific types and allow for aggregate operations
+
+    # collect fields into a nested dict
+    fields = {}
+
+    def put(field: StructField, refs: list[str]):
+        print(f"{refs=}")
+        refs_split = flatten_list([_r.split(sep) for _r in refs])
+        print(f"{refs_split=}")
+
+        target = functools.reduce(lambda acc, ref: acc.setdefault(ref, {}), refs_split[:-1], fields)
+        # target = functools.reduce(lambda acc, ref: acc.get(ref), refs[:-1], fields)
+        print(f"{fields=}", f"{target=}")
+
+        if isinstance(field.dataType, StructType):
+            # target[refs[-1]] = StructTypeCont()
+            pass
+        else:
+            if target.get(refs_split[-1]) is None:
+                target[refs_split[-1]] = []
+            target[refs_split[-1]].append((field))
+
+    foreach_field(df.schema, lambda f, refs: put(f, refs))
+
+    print(fields)
+
+    # iterate over nested dics and create column expressions
+    def iterate_leaves_with_path(nested_dict, current_path=None):
+        if current_path is None:
+            current_path = []
+
+        for key, value in nested_dict.items():
+            path = current_path + [key]
+            if isinstance(value, dict):
+                yield from iterate_leaves_with_path(value, path)
+            else:
+                yield path, value
+
+    for path, value in iterate_leaves_with_path(fields):
+        full_key = ".".join(path)
+        print(f"{full_key}: {value}")
+
+    # use column expressions to create new dataframe
+
+    # this should be our target
+    df.select(
+        F.struct(
+            F.struct(
+                F.col("_1._1._1").alias("_1"),
+                F.col("_1._1._2").alias("_2")
+            ).alias("_1")
+        ).alias("_1")
+    )
+
+    F.struct(
+        F.struct(
+            F.col("_1._2._31").alias("_31"),
+        ).alias("_2")
+    ).alias("_1")
+
+    F.struct(
+        F.struct(
+            F.col("_1._2._32").alias("_32"),
+        ).alias("_2")
+    ).alias("_1")
+
+    (
+        df
+        .withColumn(
+            "collapsed",
+
+        )
+    )
+
+    # ["_1", "2", "31"] ->
+
+    s = F.struct(F.struct().alias("_2")).alias("_1")
+    s.getField("_1").getField("_2").withField("31", F.col("_1._2._31"))
+    s.getField("_1").getField("_2").withField("32", F.col("_1._2._32"))
+
+    s = F.struct(
+        F.struct(
+            F.col("_1._2._31").alias("_31"),
+        ).alias("_2")
+    ).alias("_1")
+
+    s.getField("_1").getField("_2").withField("32", F.col("_1._2._32"))
+
+
+
+
+    def getFieldOrEmpty(parent: Column, col_name:str):
+        parent.getField(col_name)
+
+
+    # c = uuid
+    c = df.select(F.struct(F.expr("*")).alias("c"))
+    (
+        df.__dict__
+        .withColumn(
+            "c",
+            F.col("c").getFieldOrEmpty("_1").getFieldOrEmpty("_2").withField("_31", F.col("_1._2._31"))
+        )
+        .withColumn(
+            "c",
+            F.col("c").getFieldOrEmpty("_1").getFieldOrEmpty("_2").withField("_32", F.col("_1._2._32"))
+        )
+
+    )
+
+
+
+
+    pass
+
+
+def collapse_schema(spark: SparkSession, schema: StructType, sep: str) -> StructType:
+    return collapse_dataframe(spark.createDataFrame([], schema), sep).schema
