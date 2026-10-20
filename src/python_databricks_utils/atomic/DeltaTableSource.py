@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 
-from python_spark_utils.utils.delta_table_utils import get_version, restore_to_version
+from python_databricks_utils.utils.delta_table_utils import get_version, restore_to_version
 from .BackupableSource import BackupableSource
 
 
