@@ -1,27 +1,27 @@
 import logging
 from collections.abc import Callable
 
-from python_spark_utils.utils.utils import throw
 from .Atomic import Atomic
 from .AtomicResult import AtomicFailure
+from ..utils.utils import throw
 
 logger = logging.getLogger(__name__)
 
 
-def map[T, R](func: Callable[[T], R], atom: Atomic[T]) -> Atomic[R]:
-    return Atomic(atom.source, atom.transformations + [func])
+def map[T, R](func: Callable[[T], R], atomic: Atomic[T]) -> Atomic[R]:
+    return Atomic(atomic.source, atomic.transformations + [func])
 
 
-def flatmap[T, R](func: Callable[[T], Atomic[R]], atom: Atomic[T]) -> Atomic[R]:
+def flatmap[T, R](func: Callable[[T], Atomic[R]], atomic: Atomic[T]) -> Atomic[R]:
     try:
-        t = atom()
+        t = atomic()
 
         if isinstance(t, AtomicFailure):
-            return Atomic(atom.source, [lambda *_, **__: throw()])
+            return Atomic(atomic.source, [lambda *_, **__: throw()])
 
         atom_r = func(t())
 
-        source = atom.source.merge(atom_r.source)
+        source = atomic.source.merge(atom_r.source)
 
         r = atom_r()
         if isinstance(r, AtomicFailure):
@@ -30,11 +30,11 @@ def flatmap[T, R](func: Callable[[T], Atomic[R]], atom: Atomic[T]) -> Atomic[R]:
             return Atomic(source, [lambda *_, **__: r()])
     except Exception as ex:
         logger.debug(f"flatmap failed: error={ex}.")
-        return Atomic(atom.source, [lambda *_, **__: throw(ex)])
+        return Atomic(atomic.source, [lambda *_, **__: throw(ex)])
 
 
-def flatten[T](atom: Atomic[Atomic[T]]) -> Atomic[T]:
-    return flatmap(lambda a: a, atom)
+def flatten[T](atomic: Atomic[Atomic[T]]) -> Atomic[T]:
+    return flatmap(lambda a: a, atomic)
 
 
 def map2[T1, T2, R](func: Callable[[T1, T2], R], atom1: Atomic[T1], atom2: Atomic[T2]) -> Atomic[R]:

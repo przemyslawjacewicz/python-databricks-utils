@@ -2,7 +2,7 @@ from typing import Callable, Tuple, Optional, Dict, Any
 
 from pyspark.sql.types import StructField, StructType, ArrayType, MapType
 
-from python_spark_utils.utils.utils import flatten_list
+from python_databricks_utils.utils.utils import flatten_list
 
 
 def foreach_field(schema: StructType, f: Callable[[StructField, list[str]], None]) -> None:

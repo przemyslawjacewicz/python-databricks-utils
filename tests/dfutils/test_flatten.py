@@ -1,6 +1,6 @@
 from pyspark.sql.types import StructType, StructField, LongType, ArrayType, MapType, StringType
 
-from python_spark_utils.dfutils.flatten import flatten_dataframe
+from python_databricks_utils.dfutils.flatten import flatten_dataframe
 from ..tests_utils import assert_dataframe_equal
 
 

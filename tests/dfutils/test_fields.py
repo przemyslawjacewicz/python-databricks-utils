@@ -1,6 +1,6 @@
 from pyspark.sql.types import StructType, StructField, NullType, ArrayType, MapType, StringType
 
-from python_spark_utils.dfutils.fields import map_field, foreach_field, exists_field
+from python_databricks_utils.dfutils.fields import map_field, foreach_field, exists_field
 from ..tests_utils import assert_schema_equal
 
 struct_field = StructField("_1", NullType())

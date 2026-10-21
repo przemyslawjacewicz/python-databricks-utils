@@ -1,7 +1,7 @@
 import pyspark.sql.functions as F
 from pyspark.sql.types import StructType, LongType, StructField, IntegerType
 
-from python_spark_utils.dfutils.with_column import with_column
+from python_databricks_utils.dfutils.with_column import with_column
 from ..tests_utils import assert_dataframe_equal
 
 

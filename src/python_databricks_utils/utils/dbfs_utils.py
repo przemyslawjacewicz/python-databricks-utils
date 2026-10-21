@@ -10,7 +10,7 @@ from python_databricks_utils.logging.logging import get_logger
 logger = get_logger()
 
 
-def exists(path: str, dbutils: DbUtilsLike) -> bool:
+def exists(dbutils: DbUtilsLike, path: str) -> bool:
     try:
         dbutils.fs.ls(path)
         return True
@@ -29,7 +29,7 @@ def is_dbfs(spark: SparkSession) -> bool:
 
 def resolve(spark: SparkSession, *parts: str, is_dbfs_fn: Callable[[SparkSession], bool] = is_dbfs) -> str:
     joined = "/".join(parts)
-    normalized = re.sub(r"/+", "/", joined).rstrip("/")
+    normalized = n.rstrip("/") if (n := re.sub(r"/+", "/", joined)) != "/" else n
 
     if is_dbfs_fn(spark):
         return f"dbfs:{normalized}" if not normalized.startswith("dbfs:") else normalized

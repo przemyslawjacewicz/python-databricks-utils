@@ -1,3 +1,6 @@
+from collections.abc import Callable
+
+
 def flatten_list(l: list) -> list:
     flattened = []
 
@@ -10,6 +13,7 @@ def flatten_list(l: list) -> list:
     return flattened
 
 
+# todo: verify if this is needed
 def throw(ex: Exception = None):
     if ex is None:
         raise Exception

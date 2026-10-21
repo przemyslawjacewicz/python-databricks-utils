@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from python_databricks_env.dbutils.DbUtils import DbUtils
 
 load_dotenv()
 
@@ -46,3 +47,8 @@ def spark():
     yield spark
 
     spark.stop()
+
+
+@pytest.fixture(scope="session")
+def dbutils(spark):
+    return DbUtils(spark)

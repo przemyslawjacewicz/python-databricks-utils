@@ -1,6 +1,6 @@
 from pyspark.sql.types import StructType, StructField, LongType, Row
 
-from python_spark_utils.dfutils.normalize import normalize_dataframe, normalize_col
+from python_databricks_utils.dfutils.normalize import normalize_dataframe, normalize_col
 from ..tests_utils import assert_schema_equal
 
 

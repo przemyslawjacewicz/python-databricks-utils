@@ -5,7 +5,7 @@ import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, Column, SparkSession
 from pyspark.sql.types import StructField, ArrayType, MapType, StructType
 
-from python_spark_utils.utils.utils import flatten_list
+from python_databricks_utils.utils.utils import flatten_list
 
 
 def flatten_schema(spark: SparkSession, schema: StructType, sep: str) -> StructType:

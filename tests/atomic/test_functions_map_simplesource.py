@@ -1,8 +1,8 @@
-from python_spark_utils.atomic import functions
-from python_spark_utils.atomic.Atomic import Atomic
-from python_spark_utils.atomic.AtomicResult import AtomicSuccess, AtomicFailure
-from python_spark_utils.atomic.SimpleSource import SimpleSource
-from python_spark_utils.utils.utils import throw
+from python_databricks_utils.atomic import functions
+from python_databricks_utils.atomic.Atomic import Atomic
+from python_databricks_utils.atomic.AtomicResult import AtomicSuccess, AtomicFailure
+from python_databricks_utils.atomic.SimpleSource import SimpleSource
+from python_databricks_utils.utils.utils import throw
 
 
 def test_functions_map_success_map1():

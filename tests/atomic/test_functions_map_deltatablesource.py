@@ -4,14 +4,14 @@ import pyspark.sql.functions as F
 from delta import DeltaTable
 from pyspark import Row
 
-from python_spark_utils.atomic import functions
-from python_spark_utils.atomic.Atomic import Atomic
-from python_spark_utils.atomic.AtomicResult import AtomicSuccess, AtomicFailure
-from python_spark_utils.atomic.DeltaTableSource import DeltaTableSource
-from python_spark_utils.utils.utils import throw
+from python_databricks_utils.atomic import functions
+from python_databricks_utils.atomic.Atomic import Atomic
+from python_databricks_utils.atomic.AtomicResult import AtomicSuccess, AtomicFailure
+from python_databricks_utils.atomic.DeltaTableSource import DeltaTableSource
+from python_databricks_utils.utils.utils import throw
 
 
-def test_functions_map_success_map1(spark, tmp_path):
+def test_functions_map_success_map1(spark, dbutils, tmp_path):
     path = tmp_path / "table"
 
     # init
@@ -19,7 +19,7 @@ def test_functions_map_success_map1(spark, tmp_path):
 
     get_result = functions.map(
         lambda _: append(spark, path, 1, 2),
-        atomic(spark, path)
+        atomic(spark, dbutils, path)
     )
     result = get_result()
 
@@ -29,7 +29,7 @@ def test_functions_map_success_map1(spark, tmp_path):
     assert get_operations(spark, path) == ["WRITE", "WRITE"]
 
 
-def test_functions_map_failure_map1(spark, tmp_path):
+def test_functions_map_failure_map1(spark, dbutils, tmp_path):
     path = tmp_path / "table"
 
     # init
@@ -37,7 +37,7 @@ def test_functions_map_failure_map1(spark, tmp_path):
 
     get_result = functions.map(
         lambda os: throw(),
-        atomic(spark, path)
+        atomic(spark, dbutils, path)
     )
     result = get_result()
 
@@ -47,7 +47,7 @@ def test_functions_map_failure_map1(spark, tmp_path):
     assert get_operations(spark, path) == ["WRITE"]
 
 
-def test_functions_map_success_map2_single_source(spark, tmp_path):
+def test_functions_map_success_map2_single_source(spark, dbutils, tmp_path):
     path = tmp_path / "table"
 
     # init
@@ -56,7 +56,7 @@ def test_functions_map_success_map2_single_source(spark, tmp_path):
     get_result = functions.map(
         lambda _: append(spark, path, 2, 3),
         functions.map(
-            lambda _: append(spark, path, 1, 2), atomic(spark, path)
+            lambda _: append(spark, path, 1, 2), atomic(spark, dbutils, path)
         )
     )
     result = get_result()
@@ -67,7 +67,7 @@ def test_functions_map_success_map2_single_source(spark, tmp_path):
     assert get_operations(spark, path) == ["WRITE", "WRITE", "WRITE"]
 
 
-def test_functions_map_failure_map2_single_source_first_fails(spark, tmp_path):
+def test_functions_map_failure_map2_single_source_first_fails(spark, dbutils, tmp_path):
     path = tmp_path / "table"
 
     # init
@@ -76,7 +76,7 @@ def test_functions_map_failure_map2_single_source_first_fails(spark, tmp_path):
     get_result = functions.map(
         lambda _: append(spark, path, 2, 3),
         functions.map(
-            lambda _: throw(), atomic(spark, path)
+            lambda _: throw(), atomic(spark, dbutils, path)
         )
     )
     result = get_result()
@@ -87,7 +87,7 @@ def test_functions_map_failure_map2_single_source_first_fails(spark, tmp_path):
     assert get_operations(spark, path) == ["WRITE"]
 
 
-def test_functions_map_failure_map2_single_source_second_fails(spark, tmp_path):
+def test_functions_map_failure_map2_single_source_second_fails(spark, dbutils, tmp_path):
     path = tmp_path / "table"
 
     # init
@@ -96,7 +96,7 @@ def test_functions_map_failure_map2_single_source_second_fails(spark, tmp_path):
     get_result = functions.map(
         lambda _: throw(),
         functions.map(
-            lambda _: append(spark, path, 1, 2), atomic(spark, path)
+            lambda _: append(spark, path, 1, 2), atomic(spark, dbutils, path)
         )
     )
     result = get_result()
@@ -107,7 +107,7 @@ def test_functions_map_failure_map2_single_source_second_fails(spark, tmp_path):
     assert get_operations(spark, path) == ["WRITE", "WRITE", "RESTORE"]
 
 
-def test_functions_map_failure_map2_single_source_both_fail(spark, tmp_path):
+def test_functions_map_failure_map2_single_source_both_fail(spark, dbutils, tmp_path):
     path = tmp_path / "table"
 
     # init
@@ -116,7 +116,7 @@ def test_functions_map_failure_map2_single_source_both_fail(spark, tmp_path):
     get_result = functions.map(
         lambda _: throw(),
         functions.map(
-            lambda _: throw(), atomic(spark, path)
+            lambda _: throw(), atomic(spark, dbutils, path)
         )
     )
     result = get_result()
@@ -127,7 +127,7 @@ def test_functions_map_failure_map2_single_source_both_fail(spark, tmp_path):
     assert get_operations(spark, path) == ["WRITE"]
 
 
-def test_functions_map_success_map2_two_sources(spark, tmp_path):
+def test_functions_map_success_map2_two_sources(spark, dbutils, tmp_path):
     path1 = tmp_path / "table1"
     path2 = tmp_path / "table2"
 
@@ -138,7 +138,7 @@ def test_functions_map_success_map2_two_sources(spark, tmp_path):
     get_result = functions.map(
         lambda _: append(spark, path2, 1, 2),
         functions.map(
-            lambda _: append(spark, path1, 1, 2), atomic(spark, path1)
+            lambda _: append(spark, path1, 1, 2), atomic(spark, dbutils, path1)
         )
     )
     result = get_result()
@@ -153,7 +153,7 @@ def test_functions_map_success_map2_two_sources(spark, tmp_path):
     assert get_operations(spark, path2) == ["WRITE", "WRITE"]
 
 
-def test_functions_map_failure_map2_two_sources_first_fails(spark, tmp_path):
+def test_functions_map_failure_map2_two_sources_first_fails(spark, dbutils, tmp_path):
     path1 = tmp_path / "table1"
     path2 = tmp_path / "table2"
 
@@ -164,7 +164,7 @@ def test_functions_map_failure_map2_two_sources_first_fails(spark, tmp_path):
     get_result = functions.map(
         lambda _: append(spark, path2, 1, 2),
         functions.map(
-            lambda _: throw(), atomic(spark, path1)
+            lambda _: throw(), atomic(spark, dbutils, path1)
         )
     )
     result = get_result()
@@ -179,7 +179,7 @@ def test_functions_map_failure_map2_two_sources_first_fails(spark, tmp_path):
     assert get_operations(spark, path2) == ["WRITE"]
 
 
-def test_functions_map_failure_map2_two_sources_second_fails(spark, tmp_path):
+def test_functions_map_failure_map2_two_sources_second_fails(spark, dbutils, tmp_path):
     path1 = tmp_path / "table1"
     path2 = tmp_path / "table2"
 
@@ -190,7 +190,7 @@ def test_functions_map_failure_map2_two_sources_second_fails(spark, tmp_path):
     get_result = functions.map(
         lambda _: throw(),
         functions.map(
-            lambda _: append(spark, path1, 1, 2), atomic(spark, path1)
+            lambda _: append(spark, path1, 1, 2), atomic(spark, dbutils, path1)
         )
     )
     result = get_result()
@@ -205,7 +205,7 @@ def test_functions_map_failure_map2_two_sources_second_fails(spark, tmp_path):
     assert get_operations(spark, path2) == ["WRITE"]
 
 
-def test_functions_map_failure_map2_two_sources_both_fails(spark, tmp_path):
+def test_functions_map_failure_map2_two_sources_both_fails(spark, dbutils, tmp_path):
     path1 = tmp_path / "table1"
     path2 = tmp_path / "table2"
 
@@ -216,7 +216,7 @@ def test_functions_map_failure_map2_two_sources_both_fails(spark, tmp_path):
     get_result = functions.map(
         lambda _: throw(),
         functions.map(
-            lambda _: throw(), atomic(spark, path1)
+            lambda _: throw(), atomic(spark, dbutils, path1)
         )
     )
     result = get_result()
@@ -231,7 +231,7 @@ def test_functions_map_failure_map2_two_sources_both_fails(spark, tmp_path):
     assert get_operations(spark, path2) == ["WRITE"]
 
 
-def test_functions_map_failure_map3_single_source_third_fails(spark, tmp_path):
+def test_functions_map_failure_map3_single_source_third_fails(spark, dbutils, tmp_path):
     path = tmp_path / "table"
 
     # init
@@ -242,7 +242,7 @@ def test_functions_map_failure_map3_single_source_third_fails(spark, tmp_path):
         functions.map(
             lambda _: append(spark, path, 2, 3),
             functions.map(
-                lambda _: append(spark, path, 1, 2), atomic(spark, path)
+                lambda _: append(spark, path, 1, 2), atomic(spark, dbutils, path)
             )
         )
     )
@@ -254,8 +254,8 @@ def test_functions_map_failure_map3_single_source_third_fails(spark, tmp_path):
     assert get_operations(spark, path) == ["WRITE", "WRITE", "WRITE", "RESTORE"]
 
 
-def atomic(spark, path: Path) -> Atomic[Path]:
-    return Atomic(spark, DeltaTableSource(spark, str(path)))
+def atomic(spark, dbutils, path: Path) -> Atomic[Path]:
+    return Atomic(DeltaTableSource(spark, dbutils, str(path)))
 
 
 def append(spark, path: Path, start: int, end: int) -> None:
@@ -263,7 +263,7 @@ def append(spark, path: Path, start: int, end: int) -> None:
 
 
 def collect(spark, path: Path) -> list[Row]:
-    return spark.read.format("delta").load(str(path)).collect(spark)
+    return spark.read.format("delta").load(str(path)).collect()
 
 
 def get_operations(spark, path: Path) -> list[str]:

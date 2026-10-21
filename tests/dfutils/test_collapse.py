@@ -1,6 +1,6 @@
 from pyspark.sql.types import StructType, StructField, LongType, ArrayType
 
-from python_spark_utils.dfutils.collapse import collapse_dataframe
+from python_databricks_utils.dfutils.collapse import collapse_dataframe
 from ..tests_utils import assert_dataframe_equal
 
 
