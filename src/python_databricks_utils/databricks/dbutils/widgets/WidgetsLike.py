@@ -10,15 +10,12 @@ class WidgetsLike(Protocol):
     def dropdown(name: str, defaultValue: str, choices: list[str], label: str | None = None) -> None:
         ...
 
-    @staticmethod
     def get(self, name: str) -> str:
         ...
 
-    @staticmethod
     def getAll(self) -> dict[str, str]:
         ...
 
-    @staticmethod
     def getArgument(self, name: str, defaultValue: str | None = None) -> str:
         ...
 

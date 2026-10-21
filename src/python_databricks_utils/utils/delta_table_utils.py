@@ -15,20 +15,20 @@ logger = logging.getLogger(__name__)
 def clone_table(
         spark: SparkSession,
         dbutils: DbUtilsLike,
-        src_path: str,
-        trg_path: str,
+        source_path: str,
+        target_path: str,
         at: datetime | None = None,
         is_shallow: bool = True,
         replace: bool = True
 ) -> DeltaTable:
-    if replace and DeltaTable.isDeltaTable(spark, trg_path):
-        rm(dbutils, trg_path)
+    if replace and DeltaTable.isDeltaTable(spark, target_path):
+        rm(dbutils, target_path)
 
-    if not DeltaTable.isDeltaTable(spark, trg_path):
-        version = get_version(spark, src_path, at)
-        DeltaTable.forPath(spark, src_path).cloneAtVersion(version, trg_path, isShallow=is_shallow, replace=True)
+    if not DeltaTable.isDeltaTable(spark, target_path):
+        version = get_version(spark, source_path, at)
+        DeltaTable.forPath(spark, source_path).cloneAtVersion(version, target_path, isShallow=is_shallow, replace=True)
 
-    return DeltaTable.forPath(spark, trg_path)
+    return DeltaTable.forPath(spark, target_path)
 
 
 def get_df(spark: SparkSession, path: str, at: datetime | None = None) -> DataFrame | None:
