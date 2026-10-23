@@ -5,18 +5,11 @@ from pyspark.sql.types import StructType
 
 logger = logging.getLogger(__name__)
 
-def is_count_equal(left: DataFrame, right: DataFrame) -> bool:
-    return left.count() == right.count()
 
-# todo: add tests
-# todo: sorted ?
-def is_equal_schema(left: StructType, right: StructType) -> bool:
-    pass
-
-def is_schema_equal(
+def is_equal_schema(
         left: StructType,
         right: StructType,
-        ignore_case: bool = False,
+        ignore_case: bool = True,
         ignore_nullable: bool = True,
         ignore_metadata: bool = True,
 ) -> bool:
@@ -24,10 +17,7 @@ def is_schema_equal(
         if isinstance(data_type, StructType):
             return {
                 "type": "struct",
-                "fields": [
-                    normalize_field(field)
-                    for field in data_type.fields
-                ],
+                "fields": [normalize_field(field) for field in data_type.fields],
             }
 
         if hasattr(data_type, "elementType"):
@@ -35,8 +25,10 @@ def is_schema_equal(
                 "type": data_type.typeName(),
                 "elementType": normalize_data_type(data_type.elementType),
             }
+
             if not ignore_nullable and hasattr(data_type, "containsNull"):
                 result["containsNull"] = data_type.containsNull
+
             return result
 
         if hasattr(data_type, "keyType") and hasattr(data_type, "valueType"):
@@ -45,8 +37,10 @@ def is_schema_equal(
                 "keyType": normalize_data_type(data_type.keyType),
                 "valueType": normalize_data_type(data_type.valueType),
             }
+
             if not ignore_nullable and hasattr(data_type, "valueContainsNull"):
                 result["valueContainsNull"] = data_type.valueContainsNull
+
             return result
 
         return data_type.jsonValue()
@@ -68,81 +62,43 @@ def is_schema_equal(
     def normalize_schema(schema: StructType):
         return {
             "type": "struct",
-            "fields": [
-                normalize_field(field)
-                for field in schema.fields
-            ]
+            "fields": [normalize_field(field) for field in schema.fields]
         }
 
     return normalize_schema(left) == normalize_schema(right)
 
 
-def are_schemas_equal(schema1: StructType, schema2: StructType) -> bool:
-    def normalize(schema: StructType) -> StructType:
-        return StructType([StructField(f.name.upper(), f.dataType) for f in schema.fields])
-
-    return set(normalize(schema1).fields) == set(normalize(schema2).fields)
-
-
-# todo: add tests
-# todo: add schema check as first step: check schema size -> check sorted schema column matching
-def is_equal_dataframe(left: DataFrame, right: DataFrame) -> bool:
-    left_count = left.count()
-    right_count = right.count()
-    if left_count != right_count:
-        logger.debug(f"count mismatch: {left_count=}, {right_count=}.")
-        return False
-    logger.debug(f"count match: {left_count=}, {right_count=}.")
-
-    left_diff_right = left.exceptAll(right)
-    if not left_diff_right.isEmpty():
-        logger.debug(f"left diff right row-level mismatch: {left_diff_right.count()=}.")
-        return False
-    logger.debug("left diff right row-level match.")
-
-    right_diff_left = right.exceptAll(left)
-    if not right_diff_left.isEmpty():
-        logger.debug(f"right diff left row-level mismatch: {right_diff_left.count()=}.")
-        return False
-    logger.debug("right diff left row-level match.")
-
-    return True
-
-def is_content_equal(left: DataFrame, right: DataFrame) -> bool:
-    left_diff_right = left.exceptAll(right)
-    if not left_diff_right.isEmpty():
-        logger.info(f"left diff right row-level mismatch: {left_diff_right.count()=}.")
-        return False
-    logger.info(f"left diff right row-level match.")
-
-    right_diff_left = right.exceptAll(left)
-    if not right_diff_left.isEmpty():
-        logger.info(f"right diff left row-level mismatch: {right_diff_left.count()=}.")
-        return False
-    logger.info(f"right diff left row-level match.")
-
-    return True
-
-
-
-def are_dataframes_equal(df1: DataFrame, df2: DataFrame) -> bool:
-    """Multi-stage approach for comparing very large DataFrames"""
-
-    # 1. Check schema
-    if not are_schemas_equal(df1.schema, df2.schema):
-        print("Schemas don't match!")
+def is_equal_dataframe(
+        left: DataFrame,
+        right: DataFrame,
+        ignore_case: bool = True,
+        ignore_nullable: bool = True,
+        ignore_metadata: bool = True
+) -> bool:
+    # count
+    if (left_count := left.count()) != (right_count := right.count()):
+        logger.debug(f"count mismatch: {left_count=} != {right_count=}")
         return False
 
-    # 2. Check row counts
-    if df1.count() != df2.count():
-        print(f"Row counts don't match!")
+    # schema
+    if not is_equal_schema(left.schema, right.schema):
+        logger.debug(f"schema mismatch: {left.schema=} != {right.schema=}")
         return False
 
-    # 3. Check data distribution stats for fast-fail
-    for c in sorted(df1.columns):
-        if df1.select(c).distinct().count() != df2.select(c).distinct().count():
-            print(f"Column {c} has different number of distinct values")
+    # data distribution
+    for c in sorted(left.columns):
+        if (left_c_count := left.select(c).distinct().count()) != (right_c_count := right.select(c).distinct().count()):
+            print(f"distinct values count mismatch for column {c}: {left_c_count=} != {right_c_count=}")
             return False
 
-    # 4. If all above tests pass, do the full hash comparison
-    return hashdiff(df1, df2).isEmpty()
+    # left diff right
+    if not (left_diff_right := left.exceptAll(right)).isEmpty():
+        logger.debug(f"left diff right row-level mismatch: {left_diff_right.count()=}")
+        return False
+
+    # right diff left
+    if not (right_diff_left := right.exceptAll(left)).isEmpty():
+        logger.debug(f"right diff left row-level mismatch: {right_diff_left.count()=}")
+        return False
+
+    return True
