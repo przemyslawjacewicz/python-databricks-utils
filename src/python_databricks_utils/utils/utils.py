@@ -21,6 +21,7 @@ def throw(ex: Exception = None):
         raise Exception from ex
 
 
+# todo: verify if this is needed
 def unsafe[O](fn: Callable[..., O], success: O):
     result = fn()
     if result is not success:

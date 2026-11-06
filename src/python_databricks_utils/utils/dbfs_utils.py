@@ -78,3 +78,23 @@ def rm(dbutils: DbUtilsLike, dir: str, max_workers: int = 32) -> None:
     deleted = dbutils.fs.rm(dir, True)
     if not deleted:
         raise Exception(f"Failed to remove {dir}")
+
+
+def filecount(dbutils: DbUtilsLike, dir: str) -> int:
+    total = 0
+    for entry in dbutils.fs.ls(dir):
+        if entry.isDir():
+            total += filecount(dbutils, entry.path)
+        else:
+            total += 1
+    return total
+
+
+def dirsize(dbutils: DbUtilsLike, dir: str) -> int:
+    total = 0
+    for entry in dbutils.fs.ls(dir):
+        if entry.isDir():
+            total += dirsize(dbutils, entry.path)
+        else:
+            total += entry.size
+    return total
