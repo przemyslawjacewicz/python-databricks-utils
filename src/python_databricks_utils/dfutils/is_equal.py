@@ -3,7 +3,7 @@ import logging
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def is_equal_schema(

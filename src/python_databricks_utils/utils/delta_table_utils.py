@@ -9,7 +9,7 @@ from pyspark.sql.types import StructType
 from python_databricks_utils.databricks.dbutils.DbUtilsLike import DbUtilsLike
 from python_databricks_utils.utils.dbfs_utils import rm, exists
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def clone_table(

@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pyspark.sql import DataFrame, SparkSession
 from python_databricks_env.utils.fsutils import resolve
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 # todo: add tests

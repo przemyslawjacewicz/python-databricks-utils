@@ -7,7 +7,7 @@ from collections.abc import Callable
 from .AtomicResult import AtomicResult, AtomicFailure, AtomicSuccess
 from .BackupableSource import BackupableSource
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 class Atomic[O]:

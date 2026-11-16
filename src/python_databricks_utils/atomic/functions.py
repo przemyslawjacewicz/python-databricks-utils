@@ -5,7 +5,7 @@ from .Atomic import Atomic
 from .AtomicResult import AtomicFailure
 from ..utils.utils import throw
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def map[T, R](func: Callable[[T], R], atomic: Atomic[T]) -> Atomic[R]:

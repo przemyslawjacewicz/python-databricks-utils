@@ -7,7 +7,7 @@ from collections.abc import Callable
 import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, Column
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 def fingerprint_col(cols: list, chunk_size: int = 100, hash_fn: Callable[..., Column] = F.xxhash64) -> Column:

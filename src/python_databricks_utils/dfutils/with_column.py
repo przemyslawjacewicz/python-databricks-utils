@@ -7,7 +7,7 @@ from pyspark.sql.types import StructType
 
 from .fields import exists_field
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 
 # todo: clean me up!
