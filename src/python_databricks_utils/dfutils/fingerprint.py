@@ -16,24 +16,14 @@ def fingerprint_col(cols: list, chunk_size: int = 100, hash_fn: Callable[..., Co
     return hash_fn(*cols_chunk_hashed) if len(cols_chunk_hashed) > 1 else cols_chunk_hashed[0]
 
 
-def fingerprint_dataframe(df: DataFrame, chunk_size: int = 100, buckets: int = 8) -> DataFrame:
-    logger.info(f"{len(df.schema)=}, {chunk_size=}, {buckets=}")
-
-    return (
-        df
-        .select(fingerprint_col(df.columns, chunk_size).alias("_row_fingerprint"))
-        .withColumn("_bucket", F.pmod(F.col("_row_fingerprint"), F.lit(buckets)))
-        .groupBy("_bucket", "_row_fingerprint")
-        .agg(F.count(F.lit(1)).alias("_row_count"))
-    )
-
-
-def fingerprint_df(
+def fingerprint_dataframe(
         df: DataFrame,
         hash_fn: Callable[..., Column] = F.xxhash64,
         chunk_size: int = 100,
         buckets: int = 8
 ) -> DataFrame:
+    logger.info(f"{len(df.schema)=}, {chunk_size=}, {buckets=}")
+
     return (
         df
         .select(fingerprint_col(df.columns, chunk_size, hash_fn).alias("_row_fingerprint"))

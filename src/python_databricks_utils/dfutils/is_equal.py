@@ -68,6 +68,7 @@ def is_equal_schema(
     return normalize_schema(left) == normalize_schema(right)
 
 
+# todo: add normalization of input dataframes to ignore case, whitespace, accents etc
 def is_equal_dataframe(
         left: DataFrame,
         right: DataFrame,
@@ -81,7 +82,7 @@ def is_equal_dataframe(
         return False
 
     # schema
-    if not is_equal_schema(left.schema, right.schema):
+    if not is_equal_schema(left.schema, right.schema, ignore_case, ignore_nullable, ignore_metadata):
         logger.debug(f"schema mismatch: {left.schema=} != {right.schema=}")
         return False
 
