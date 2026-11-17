@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pyspark.sql import SparkSession
 
 from python_databricks_utils.databricks.dbutils.DbUtilsLike import DbUtilsLike
+from python_databricks_utils.databricks.dbutils.fs.FileInfoLike import FileInfoLike
 from python_databricks_utils.logging.logging import get_logger
 
 logger = get_logger()
@@ -80,21 +81,26 @@ def rm(dbutils: DbUtilsLike, dir: str, max_workers: int = 32) -> None:
         raise Exception(f"Failed to remove {dir}")
 
 
-def filecount(dbutils: DbUtilsLike, dir: str) -> int:
+# if entry.name.lower() not in list(map(lambda _e: _e.lower(), excluded)):#
+
+
+def filecount(dbutils: DbUtilsLike, dir: str, accept: Callable[[FileInfoLike], bool] = lambda _: True) -> int:
     total = 0
     for entry in dbutils.fs.ls(dir):
-        if entry.isDir():
-            total += filecount(dbutils, entry.path)
-        else:
-            total += 1
+        if accept(entry):
+            if entry.isDir():
+                total += filecount(dbutils, entry.path, accept)
+            else:
+                total += 1
     return total
 
 
-def dirsize(dbutils: DbUtilsLike, dir: str) -> int:
+def filesize(dbutils: DbUtilsLike, dir: str, accept: Callable[[FileInfoLike], bool] = lambda _: True) -> int:
     total = 0
     for entry in dbutils.fs.ls(dir):
-        if entry.isDir():
-            total += dirsize(dbutils, entry.path)
-        else:
-            total += entry.size
+        if accept(entry):
+            if entry.isDir():
+                total += filesize(dbutils, entry.path, accept)
+            else:
+                total += entry.size
     return total
