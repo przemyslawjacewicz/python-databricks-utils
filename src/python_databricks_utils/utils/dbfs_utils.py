@@ -87,20 +87,18 @@ def rm(dbutils: DbUtilsLike, dir: str, max_workers: int = 32) -> None:
 def filecount(dbutils: DbUtilsLike, dir: str, accept: Callable[[FileInfoLike], bool] = lambda _: True) -> int:
     total = 0
     for entry in dbutils.fs.ls(dir):
-        if accept(entry):
-            if entry.isDir():
-                total += filecount(dbutils, entry.path, accept)
-            else:
-                total += 1
+        if entry.isDir():
+            total += filecount(dbutils, entry.path, accept)
+        elif accept(entry):
+            total += 1
     return total
 
 
 def filesize(dbutils: DbUtilsLike, dir: str, accept: Callable[[FileInfoLike], bool] = lambda _: True) -> int:
     total = 0
     for entry in dbutils.fs.ls(dir):
-        if accept(entry):
-            if entry.isDir():
-                total += filesize(dbutils, entry.path, accept)
-            else:
-                total += entry.size
+        if entry.isDir():
+            total += filesize(dbutils, entry.path, accept)
+        elif accept(entry):
+            total += entry.size
     return total
